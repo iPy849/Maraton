@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maraton</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css')}}">
+</head>
+
+<body>
+    <!-- Overlay -->
+    <div id="overlay" style="visibility: hidden;"></div>
+
+    <!-- Nav bar -->
+    <div class="navbar" id="navbar">
+        <div id="navbar_toggle">Menu</div>
+        <div id="user_info" class="navbar_section">
+            <h1>Juego Maratón</h1>
+            <small>&copy; Sequel Enterprise</small>
+            <hr/>
+            <p>
+            {% if auth_vars %}
+                {{ auth_vars.1 }}
+            {% else %}
+                Ingrese a su perfil
+            {% endif %}
+            </p>
+            <div>
+                {% if not auth_vars %}
+                    <button class="button login">Ingresar</button>
+                {% else %}
+                    <button class="button logout">Cerrar Sesion</button>
+                {% endif %}
+            </div>
+        </div>
+        {% if auth_vars %}
+            <div id="navbar_menu" class="navbar_section">
+                <h2>Menú</h2>
+                <hr>
+                <ul>
+                    <li id="play_game">Jugar</li>
+                    <li id="create_group">Nuevo Grupo</li>
+                    {% if user_last_session %}
+                        <li id="session_history">Historial de Sesion</li>
+                        <li id="group_history">Historial de Grupo</li>
+
+                    {% endif %}
+                    <li id="configs">Configuraciones</li>
+                </ul>
+            </div>
+        {% endif %}
+    </div>
+    <!-- End Nav bar -->
+
+    <!-- Login -->
+    <div id="login_modal" style="display: none;">
+        <div id="login_close" class="button">X</div>
+        <h2>Usuario:</h2>
+        <hr>
+        <form action="{{ url_for('auth') }}" method="post" id="login_form">
+            <p></p>
+            <input type="email" placeholder="email" name="user_email" id="user_email" required>
+            <input type="password" placeholder="password" name="user_password" id="user_password" required>
+            <input type="hidden" name="auth_operation" id="auth_operation">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div>
+                <input class="button" type="button" id="login_button" value="Ingresar">
+                <input class="button" type="button" id="register_button" value="Registar">
+            </div>
+        </form>
+    </div>
+    <!-- Login -->
+
+    <!-- General Modal -->
+    <div id="modal" style="display: none;">
+        <div id="modal_close" class="button">X</div>
+        <div id="modal_content">
+
+        </div>
+    </div>
+    <!-- Login -->
+
+    <!-- Content -->
+    <div id="content">
+        <div class="board">
+        {% if user_last_session %}
+            <!-- Area de las preguntas-->
+            <div id="game_zone" class="board_cell">
+                <h2>Zona de Juego</h2>
+                <hr>
+                <div class="game_area">
+                    <!-- Zona izquierda o superior-->
+                    <div>
+                        <h3>Equipo: <span data-team="-1" id="currentTeam"></span></h3>
+                        <h3>Tema:</h3>
+                        <p id="currentTopic"></p>
+                        <h3>Pregunta:</h3>
+                        <p id="currentQuestion">Alto alto como un pino y pesa menos que un comino</p>
+                        <h3>Respuesta:</h3>
+                        <p id="currentAnswer">El humo</p>
+                    </div>
+                    <!-- End Zona izquierda o superior-->
+
+                    <!-- Zona derecha o inferior-->
+                    <div>
+                        <form>
+                            <input type="hidden" name="round_result" id="round_result" value="-3">
+                            <input type="button" class="button" value="Gana" id="round_win">
+                            <input type="button" class="button" value="Pierde" id="round_lose">
+                            <label for="equipo_robada" class="button">
+                                Robada por
+                                <select name="equipo_robada" id="round_steal">
+                                    <option value="-3" selected>Ninguna</option>
+                                    {% for team in teams %}
+                                        <option value="{{team.id}}" >{{team.name}}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <input type="button" class="button" value="Terminar ronda" id="end_round">
+                        </form>
+                    </div>
+                    <!-- End Zona derecha o inferior-->
+                </div>
+            </div>
+            <div class="board_column_wrapper">
+                <div class="board_cell board_column">
+                    <h2>Informacion del grupo</h2>
+                    <hr>
+                    <ul id="game_statistics">
+                        <li><p>Grupo: {{ group_info.nombre }} --- Fecha de inicio: {{ group_info.fecha_inicio.date() }}</p></li>
+                        <li><p data-session="{{ user_last_session }}" id="game-session">Sesión (ID): {{ user_last_session }}</p></li>
+                        <li>Equipos: 
+                            <ol id="teamList">
+                                {% for team in teams %}
+                                    <li data-id="{{ team.id }}">{{ team.name }}</li>
+                                {% endfor %}
+                            </ol>
+                        </li>
+                        <br>
+                        <li><p class="button" id="end_session">Cerrar sesión de juego</p></li>
+                        <li><p class="button" data-id="{{ user_group }}" id="end_group">Cerrar grupo de juego</p></li>
+
+                    </ul>
+                </div>
+                <div class="board_cell board_column">
+                    <h2>Estadísticas del equipo</h2>
+                    <hr>
+                    <ul id="statistics">
+                        <li><p>Ganadas: <span id="team_session_win"></span></p></li>
+                        <li><p>Perdidas: <span id="team_session_lose"></span></p></li>
+                        <li><p>Robadas: <span id="team_session_stolen"></span></p></li>
+                        <li><p>Canitdad de integrantes: <span id="team_session_qty"></span></p></li>
+                        <li><p>Puntos totales: <span id="team_session_total"></span></p></li>
+                    </ul>
+                </div>
+            </div>
+        {% else %}
+            <h2>No has seleccionado un grupo con el que jugar</h2>
+        {% endif %}
+        </div>
+    </div>
+    <!-- End Content -->
+
+    <!-- Javascript -->
+    <script type="text/javascript" src="{{ url_for('static', filename='js/menu_controller.js')}}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/group.js')}}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/login.js')}}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/game.js')}} "></script>
+
+</body>
+
+</html>
